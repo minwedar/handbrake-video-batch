@@ -1,7 +1,7 @@
 # handbrake-video-batch
 Systematically loop through a file list and use Handbrake and exiftool to re-render video files.
 
-I wrote this script because I wanted an easy way to grab a list of video files and rerender it using my favorite video render app Handbrake.  I prefered making the list of files for this script manual rather than doing it in the script because I often wanted to review the list before lengthy render started.
+I wrote this script because I wanted an easy way to grab a list of video files and rerender it using my favorite video render app Handbrake.  This works great to get all those home videos from all those cameras you've had over the pass and get them into something usable like an Apple TV format.  I prefered making the list of files for this script manual rather than doing it in the script because I often wanted to review the list before lengthy render started.
 
 This script requires two pieces of free software: Handbrake and exiftool
 Handbrake: https://handbrake.fr
