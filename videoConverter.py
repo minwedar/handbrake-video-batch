@@ -17,6 +17,9 @@
 # I drop both of these binaries into the /usr/local/bin folder, just
 #  make sure you place them where they can be found in your env path.
 
+# Waring:
+# I'm using OSX Seirra 10.12.2 at the moment and I was bummped that I had to turn off the
+# sleep mode when connected to power because it slept my render midway through.
 
 # Examples:
 # 
@@ -56,6 +59,8 @@ def main():
 	p.add_option('--overwrite', '-x', help="Overwrites output file if it exists.  Default not to.", action="store_true")
 	p.add_option('--add_date', help="Add time stamp to begining of the file's name.", action="store_true")
 	p.add_option('--add_shot_date', help="Add time stamp to begining of the file's name from \"Shot Data\" exif info.", action="store_true")
+	p.add_option('--rotate', help="Look at exiftool data to see if there is a rotation.", action="store_true")
+	p.add_option('--duration_threashold', help="Look at exiftool data to remove short clips.", default=None)
 
 	global options, presets
 	options, arguments = p.parse_args()
@@ -178,8 +183,8 @@ def HBRender(fileList):
 			# There is a good chance there isn't a "Shot Date".  When there isn't one, lets just note that in the file name.
 			try:
 				shotDateREXP = re.compile("[^Shot Date].*$")
-				cmdstr = "exiftool -api largefilesupport=1 -\"ShotDate\" -dateFormat \"%%Y%%m%%d_%%H%%M%%S\" \"%s\"" % n
-				(stdout,stderr,returncode) = runcmd(cmdstr, workingDir=None)
+				exiftoolcmdstr = "exiftool -api largefilesupport=1 -\"ShotDate\" -dateFormat \"%%Y%%m%%d_%%H%%M%%S\" \"%s\"" % n
+				(stdout,stderr,returncode) = runcmd(exiftoolcmdstr, workingDir=None)
 				dateStamp = shotDateREXP.findall(stdout)[0]
 				dateStamp = re.sub('[: ]', '', dateStamp)
 				fileName = dateStamp + "_" + item[-1][:-4]  + '.mp4'
@@ -189,7 +194,65 @@ def HBRender(fileList):
 				fileName = "unknown_" + item[-1][:-4]  + '.mp4'
 
 		else:
-			fileName = item[-1][:-4]  + '.mp4'   # Removed extention then add new one
+			fileName = item[-1][:-4] + '.mp4'   # Removed extention then add new one
+
+
+		# This option is to fix image rotation issues from an iPhone (tested so far)
+		if (options.rotate):
+			try:
+				rotationREXP = re.compile("[^Rotation].*$")
+				exiftoolcmdstr = "exiftool -api largefilesupport=1 -\"Rotation\" \"%s\"" % n
+				(stdout,stderr,returncode) = runcmd(exiftoolcmdstr, workingDir=None)
+				
+				rotationData = rotationREXP.findall(stdout)[0]
+				rotationData = re.sub('[: ]', '', rotationData)
+				#print "Trace: Rotation: %s" % rotationData
+
+				if (rotationData == '180'):
+					rotationStr = ' --rotate'
+				else:
+					rotationStr = ''
+
+			except Exception, e:
+				print 'Rotation Data not found: %s' % n
+				rotationStr = ''
+			
+		else:
+			rotationStr = ''
+
+
+		if options.duration_threashold:
+			try:
+				durationREXP = re.compile("^Duration.*?: (.*)")
+				exiftoolcmdstr = "exiftool -api largefilesupport=1 -\"Duration\" \"%s\"" % n
+				(stdout,stderr,returncode) = runcmd(exiftoolcmdstr, workingDir=None)
+				
+				durationData = durationREXP.findall(stdout)[0]
+
+				# Duration appears to have two formats "00:00:00" or "00.00 s"
+				durationREXPseconds = re.compile("^(\d.*.\d*) s$")
+				durationREXPtime = re.compile("^(\d{1,2}:\d{1,2}:\d{1,2})$")
+
+				if (durationREXPseconds.match(durationData)):
+					durationSeconds = durationREXPseconds.findall(durationData)[0]
+
+				elif (durationREXPtime.match(durationData)):
+					durationHours = int(durationData.split(':')[0]) * 60 * 60
+					durationMinutes = int(durationData.split(':')[1]) * 60
+					durationSeconds = int(durationHours) + int(durationMinutes)+ int(durationData.split(':')[2])
+					
+				else:
+					print "Error: Duration format not detected."
+					raise
+
+				if (float(durationSeconds) <= float(options.duration_threashold)):
+					print "Duratin Skip (%.2f is less than %.2f): %s" % (float(durationSeconds), float(options.duration_threashold), n)
+					continue
+
+			except Exception, e:
+				print "Duration Error: %s" % e
+				print 'Duration Data not found: %s' % n
+
 
 		# Check to see if target file exist
 		fileExists = os.path.exists(options.output + '/' + fileName)
@@ -201,7 +264,7 @@ def HBRender(fileList):
 			f.close()
 			continue
 
-		elif (fileExists and not options.overwrite):
+		elif (fileExists and options.overwrite):
 			print 'File exists, overwriting: %s' % (options.output + '/' + fileName)
 
 		# Another option to allow the file structure to remain on output
@@ -219,11 +282,12 @@ def HBRender(fileList):
 				print 'ERROR: Could not create destination directory: %s' % (options.output + extraFilePath)
 				continue	
 			
-			current_cmdStr = cmdStr + ' -i "' + n + '" -o "' + options.output + extraFilePath + '/' + fileName + '"'
+			current_cmdStr = cmdStr + rotationStr + ' -i "' + n + '" -o "' + options.output + extraFilePath + '/' + fileName + '"'
 			
 		else:
-			current_cmdStr = cmdStr + ' -i "' + n + '" -o "' + options.output + '/' + fileName + '"'
-	
+			current_cmdStr = cmdStr + rotationStr + ' -i "' + n + '" -o "' + options.output + '/' + fileName + '"'
+
+
 		if options.trace:
 			print timeStamp() + ': Trace: %s' % current_cmdStr
 		else:
