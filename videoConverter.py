@@ -208,10 +208,8 @@ def HBRender(fileList):
 				rotationData = re.sub('[: ]', '', rotationData)
 				#print "Trace: Rotation: %s" % rotationData
 
-				if (rotationData == '180'):
-					rotationStr = ' --rotate'
-				else:
-					rotationStr = ''
+				if (rotationData):
+					rotationStr = ' --rotate="angle=%s:hflip=0"' % rotationData
 
 			except Exception, e:
 				print 'Rotation Data not found: %s' % n
