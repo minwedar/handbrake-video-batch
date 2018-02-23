@@ -10,6 +10,17 @@ exiftool: http://www.sno.phy.queensu.ca/~phil/exiftool/
 I just installed Handbrake, then dropped this handbrake CLI binary and the exiftool binary into the /usr/local/bin directory (or just anywhere your env path will find them).
 
 
+## Changelog
+
+### 2018.02
+
+Working on reducing the size of some videos on my NAS box now that my cell phone is producing 40Mbit/s rate 4k video files.  When I applied this script, I found that HandBrake doesn't try to figure out your camera's orientation.  I only added the default flip of 180 on this commit which in my case was all the ones I had (I don't like taking video in portrait mode.)
+
+Also I noticed I had so many of the "live" video clips being sucked in from Apple's live photo capture mode.  I simply solved this by creating a "duration_threshold" option and if you set it to 4 (4 seconds) it will take a look at the metadata of that video and pop it out of the list if it's less than 4 seconds.  This is only tested on our current iPhones.
+
+
+
+
 ## Usage
 ```
 $ ./videoConverter.py -h
@@ -36,9 +47,14 @@ Options:
                         preset (720p)
   -d, --dir_structure   Directory structure at output point from input point.
   -x, --overwrite       Overwrites output file if it exists.  Default not to.
-  --add_date            Add time stamp to begining of the file's name.
-  --add_shot_date       Add time stamp to begining of the file's name from
+  --add_date            Add time stamp to beginning of the file's name.
+  --add_shot_date       Add time stamp to beginning of the file's name from
                         "Shot Data" exif info.
+  --rotate              Look for rotation metatdata and apply rotation command
+                        to handbrake cmd line when needed.  (Only 180 degree
+                        rotation currently setup.)
+  --duration_threshold Weed out those videos in the list that have fewer than
+                        seconds specified with this option.
   ```
   
 ## Examples

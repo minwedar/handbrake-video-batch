@@ -60,7 +60,7 @@ def main():
 	p.add_option('--add_date', help="Add time stamp to begining of the file's name.", action="store_true")
 	p.add_option('--add_shot_date', help="Add time stamp to begining of the file's name from \"Shot Data\" exif info.", action="store_true")
 	p.add_option('--rotate', help="Look at exiftool data to see if there is a rotation.", action="store_true")
-	p.add_option('--duration_threashold', help="Look at exiftool data to remove short clips.", default=None)
+	p.add_option('--duration_threshold', help="Look at exiftool data to remove short clips.", default=None)
 
 	global options, presets
 	options, arguments = p.parse_args()
@@ -221,7 +221,7 @@ def HBRender(fileList):
 			rotationStr = ''
 
 
-		if options.duration_threashold:
+		if options.duration_threshold:
 			try:
 				durationREXP = re.compile("^Duration.*?: (.*)")
 				exiftoolcmdstr = "exiftool -api largefilesupport=1 -\"Duration\" \"%s\"" % n
@@ -245,8 +245,8 @@ def HBRender(fileList):
 					print "Error: Duration format not detected."
 					raise
 
-				if (float(durationSeconds) <= float(options.duration_threashold)):
-					print "Duratin Skip (%.2f is less than %.2f): %s" % (float(durationSeconds), float(options.duration_threashold), n)
+				if (float(durationSeconds) <= float(options.duration_threshold)):
+					print "Duratin Skip (%.2f is less than %.2f): %s" % (float(durationSeconds), float(options.duration_threshold), n)
 					continue
 
 			except Exception, e:
